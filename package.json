@@ -43,6 +43,7 @@
     "eventemitter3": "^4.0.7",
     "js-base64": "^3.7.2",
     "json-format": "^1.0.1",
+    "json2csv": "^5.0.7",
     "lodash.clonedeep": "^4.5.0",
     "lodash.isequal": "^4.5.0",
     "mime": "^3.0.0",
@@ -64,6 +65,7 @@
     "web-file-polyfill": "^1.0.4"
   },
   "devDependencies": {
+    "@types/json2csv": "^5.0.3",
     "@types/node": "^16.10.3",
     "@types/react": "^17.0.27",
     "autoprefixer": "^10.4.7",
