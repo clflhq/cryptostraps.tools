@@ -1958,16 +1958,17 @@
     tiny-invariant "^1.2.0"
     tslib "^2.4.0"
 
-"@shadow-drive/sdk@^3.0.2":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@shadow-drive/sdk/-/sdk-3.0.2.tgz#da0484d4ecd22cd0e6fdd9e3df3161ea85674924"
-  integrity sha512-Htyj/rUUQPMcVuvRGGaL6vXue+WIyQUAZ4rkt1WvrCmtZoCDKZEMJWEq+nBWGa3yfr+CD9OTHtl4SuzRGQ8d7Q==
+"@shadow-drive/sdk@^3.0.8":
+  version "3.0.8"
+  resolved "https://registry.yarnpkg.com/@shadow-drive/sdk/-/sdk-3.0.8.tgz#2ce515f86932a9ef9f6657d70f07ebc313f61505"
+  integrity sha512-uwGcL7We3Cd45JFX9rGnFP3lBGjOw4JYevIQVsvaAm4e8v+EFq/SA+jiz06ch0tfr/hNaVDN0PscN+qGHq5UKQ==
   dependencies:
     "@project-serum/anchor" "^0.24.2"
     "@solana/spl-token" "^0.2.0"
     cross-fetch "^3.1.5"
     form-data "^4.0.0"
     node-fetch "2"
+    rxjs "^7.5.5"
     tweetnacl "^1.0.3"
 
 "@sideway/address@^4.1.3":
@@ -3575,13 +3576,6 @@ cookiejar@^2.1.2:
   version "2.1.3"
   resolved "https://registry.yarnpkg.com/cookiejar/-/cookiejar-2.1.3.tgz#fc7a6216e408e74414b90230050842dacda75acc"
   integrity sha512-JxbCBUdrfr6AQjOXrxoTvAMJO4HBTUIlBzslcJPAz+/KT8yk53fXun51u+RenNYvad/+Vc2DIz5o9UxlCDymFQ==
-
-copy-to-clipboard@^3.3.1:
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/copy-to-clipboard/-/copy-to-clipboard-3.3.1.tgz#115aa1a9998ffab6196f93076ad6da3b913662ae"
-  integrity sha512-i13qo6kIHTTpCm8/Wup+0b1mVWETvu2kIMzKoK8FpkLkFxlt0znUAHcMzox+T8sPlqtZXq3CulEjQHsYiGFJUw==
-  dependencies:
-    toggle-selection "^1.0.6"
 
 core-js-pure@^3.20.2:
   version "3.23.3"

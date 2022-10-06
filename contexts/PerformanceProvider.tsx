@@ -23,7 +23,7 @@ export function PerformanceProvider({ children }) {
   const [warning, setWarning] = useState<string>("");
   const [tps, setTps] = useState(0);
   // hack: https://github.com/solana-labs/solana/issues/26372
-  const connection = useMemo(() => new Connection("https://pentacle.genesysgo.net"), []);
+  const connection = useMemo(() => new Connection("https://alice.genesysgo.net"), []);
 
 
   const getPerformance = useCallback(async () => {

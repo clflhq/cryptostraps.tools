@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AttributesForm } from "../components/attributes-form";
 import jsonFormat from "json-format";
 import { Controller, useForm } from "react-hook-form";
@@ -17,11 +17,13 @@ import {
   Metaplex,
   walletAdapterIdentity,
 } from "../lib/metaplex/dist/esm/index.mjs";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { sleep } from "../util/sleep";
 import { useBalance } from "../contexts/BalanceProvider";
 import { toast } from "react-toastify";
 import JupiterForm from "../components/jupiter-swap";
+import { JupiterProvider } from "@jup-ag/react-hook";
+import { getPlatformFeeAccounts } from "@jup-ag/core";
 
 function MintNftPage() {
   const {
@@ -106,7 +108,7 @@ function MintNftPage() {
                 {...register("imageUrlFileName")}
                 className="w-full select"
               >
-                <option selected disabled value=""></option>
+                <option selected disabled defaultValue=""></option>
                 {files.map((f, i) => (
                   <option key={i} value={f.name}>
                     {f.name}
@@ -122,7 +124,7 @@ function MintNftPage() {
                 {...register("animationUrlFileName")}
                 className="w-full select"
               >
-                <option selected disabled value=""></option>
+                <option selected disabled defaultValue=""></option>
                 {files.map((f, i) => (
                   <option key={i} value={f.name}>
                     {f.name}
@@ -256,11 +258,13 @@ function MintNftPage() {
         let confirmed = false;
         while (!confirmed) {
           const tx = await connection.getTransaction(transactionId, {
-            commitment: "confirmed",
+            commitment: "finalized",
           });
 
           if (tx && tx?.meta?.postTokenBalances[0]?.mint) {
             setMint(tx?.meta?.postTokenBalances[0]?.mint);
+            toast.dismiss();
+            setLoading(false);
             toast("Sucess!", {
               type: "success",
               autoClose: 5000,
@@ -282,271 +286,280 @@ function MintNftPage() {
     },
     [connection, wallet, files, shdwBalanceAsNumber, setModalState]
   );
+  const { publicKey } = wallet;
 
-  return wallet?.publicKey ? (
-    <div>
-      <br />
-
-      <h2 className="text-3xl text-center">NFT Minting - BETA</h2>
+  return (
+    <>
+      <h2 className="text-3xl text-center">NFT Minting</h2>
       <h3 className="mt-2 text-xl text-center text-gray-500">
         powered by SHDW Drive
       </h3>
-
-      <div className="text-center">
-        {!!shdwBalance && (
-          <div className="mt-3 text-center">
-            <span className="badge badge-success">{shdwBalance} SHDW</span>
-            <span className="ml-3 badge badge-primary">{solBalance} SOL</span>
-          </div>
-        )}
-        <button
-          className="mt-3 btn btn-success btn-outline btn-sm"
-          onClick={() => setShowingForm(!showingForm)}
-        >
-          {showingForm ? "Close Swap" : "Get $SHDW"}
-        </button>
-      </div>
-
-      {showingForm && <JupiterForm />}
-
-      <hr className="my-3 opacity-10" />
-
-      <div className="bg-gray-900 card">
-        <div className="card-body">
-          {!wallet && <WalletMultiButton />}
-          {wallet && (
-            <form
-              className={`flex flex-col w-full`}
-              onSubmit={handleSubmit((e) => upload(e))}
+      <br />
+      {publicKey ? (
+        <div>
+          <div className="text-center">
+            {!!shdwBalance && (
+              <div className="mt-3 text-center">
+                <span className="badge badge-success">{shdwBalance} SHDW</span>
+                <span className="ml-3 badge badge-primary">
+                  {solBalance} SOL
+                </span>
+              </div>
+            )}
+            <button
+              className="mt-3 btn btn-success btn-outline btn-sm"
+              onClick={() => setShowingForm(!showingForm)}
             >
-              <h2 className="text-3xl font-bold text-center">Metadata</h2>
-              <div className="text-center">
-                The metadata standard is defined{" "}
+              {showingForm ? "Close Swap" : "Get $SHDW"}
+            </button>
+          </div>
+
+          {showingForm && <JupiterForm />}
+
+          <hr className="my-3 opacity-10" />
+
+          <div className="bg-gray-900 card">
+            <div className="card-body">
+              {!wallet && <WalletMultiButton />}
+              {wallet && (
+                <form
+                  className={`flex flex-col gap-6 w-full`}
+                  onSubmit={handleSubmit((e) => upload(e))}
+                >
+                  <h2 className="text-3xl font-bold text-center">Metadata</h2>
+                  <div className="text-center">
+                    The metadata standard is defined{" "}
+                    <a
+                      href="https://docs.metaplex.com/programs/token-metadata/token-standard#token-standards"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ textDecoration: "underline" }}
+                    >
+                      here by Metaplex
+                    </a>
+                  </div>
+                  <br />
+                  <div
+                    className="form-control"
+                    style={{ position: "relative" }}
+                  >
+                    <label className="label">
+                      <span className="label-text">Name *</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      className={`input input-bordered ${
+                        !!errors.name ? "input-error" : ""
+                      }`}
+                      {...register("name", { required: true, maxLength: 32 })}
+                    />
+                    {errors.name && (
+                      <label
+                        className="py-0 label"
+                        style={{ position: "absolute", bottom: 0 }}
+                      >
+                        <span className="text-red-400 label-text-alt">
+                          {/* @ts-ignore */}
+                          {errors.name.type === "maxLength" &&
+                            "Max 32 characters!"}
+                          {/* @ts-ignore */}
+                          {errors.name.type === "required" &&
+                            "Field is required!"}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                  <div
+                    className="form-control"
+                    style={{ position: "relative" }}
+                  >
+                    <label className="label" htmlFor="symbol">
+                      <span className="label-text">Symbol</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Symbol"
+                      className={`input input-bordered ${
+                        !!errors.symbol ? "input-error" : ""
+                      }`}
+                      {...register("symbol", { maxLength: 10 })}
+                    />
+                    {errors.symbol && (
+                      <label
+                        className="py-0 label"
+                        style={{ position: "absolute", bottom: 0 }}
+                      >
+                        <span className="text-red-400 label-text-alt">
+                          Max 10 characters!
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                  <div
+                    className="form-control"
+                    style={{ position: "relative" }}
+                  >
+                    <label className="label" htmlFor="description">
+                      <span className="label-text">Description</span>
+                    </label>
+                    <textarea
+                      className="h-24 textarea"
+                      placeholder="Description"
+                      {...register("description")}
+                    ></textarea>
+                  </div>{" "}
+                  <div
+                    className="form-control"
+                    style={{ position: "relative" }}
+                  >
+                    <label className="label">
+                      <span className="label-text">
+                        External URL (Link to your website, e.g.
+                        https://rugbirdz.com)
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="External URL"
+                      {...register("external_url", { pattern: URL_MATCHER })}
+                      className={`input input-bordered ${
+                        !!errors.external_url ? "input-error" : ""
+                      }`}
+                    />
+
+                    {errors.external_url && (
+                      <label
+                        className="py-0 label"
+                        style={{ position: "absolute", bottom: 0 }}
+                      >
+                        <span className="text-red-400 label-text-alt">
+                          Not a valid url, don&apos;t forget protocol (https://)
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                  <div
+                    className="form-control"
+                    style={{ position: "relative" }}
+                  >
+                    <label htmlFor="category" className="label">
+                      <span className="label-text">Category</span>
+                    </label>
+                    <Controller
+                      name="properties.category"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value, ref } }) => (
+                        <select
+                          onBlur={onBlur}
+                          onChange={onChange}
+                          className="select"
+                          value={value}
+                          ref={ref}
+                          name="category"
+                        >
+                          <option value="image">Image</option>
+                          <option value="vr">VR</option>
+                          <option value="video">Video</option>
+                          <option value="html">HTML</option>
+                        </select>
+                      )}
+                    />
+                  </div>
+                  <div
+                    className="form-control"
+                    style={{ position: "relative" }}
+                  >
+                    <label className="label" htmlFor="seller_fee_basis_points">
+                      <span className="label-text">
+                        Resale Fee (0-10 000, e.g. for 5% use 500)
+                      </span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10000"
+                      placeholder="e.g. 500"
+                      {...register("seller_fee_basis_points", {
+                        min: 0,
+                        max: 10_000,
+                      })}
+                      className={`input input-bordered ${
+                        !!errors.seller_fee_basis_points ? "input-error" : ""
+                      }`}
+                    />
+
+                    {errors.seller_fee_basis_points && (
+                      <label
+                        className="py-0 label"
+                        style={{ position: "absolute", bottom: 0 }}
+                      >
+                        <span className="text-red-400 label-text-alt">
+                          Must be between 0 and 10 000
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                  <AttributesForm register={register} />
+                  {FilesForm}
+                  {wallet && (
+                    <button
+                      className={`btn ${loading ? "loading" : ""}`}
+                      disabled={loading}
+                      type="submit"
+                    >
+                      Next
+                    </button>
+                  )}
+                </form>
+              )}
+            </div>
+          </div>
+
+          <input
+            type="checkbox"
+            id="my-modal-2"
+            checked={!!mint}
+            className="modal-toggle"
+          />
+
+          <div id="my-modal" className="modal">
+            <div className="modal-box">
+              <p>
+                NFT has been minted.{" "}
                 <a
-                  href="https://docs.metaplex.com/programs/token-metadata/token-standard#token-standards"
+                  className="link"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ textDecoration: "underline" }}
+                  href={`https://solscan.io/token/${mint}`}
                 >
-                  here by Metaplex
+                  View on SolScan
+                </a>
+              </p>
+              <div className="modal-action">
+                <a onClick={() => setMint(undefined)} className="btn">
+                  Close
                 </a>
               </div>
-              <br />
-              <div
-                className="pb-6 form-control"
-                style={{ position: "relative" }}
-              >
-                <label className="label">
-                  <span className="label-text">Name *</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Name"
-                  className={`input input-bordered ${
-                    !!errors.name ? "input-error" : ""
-                  }`}
-                  {...register("name", { required: true, maxLength: 32 })}
-                />
-                {errors.name && (
-                  <label
-                    className="py-0 label"
-                    style={{ position: "absolute", bottom: 0 }}
-                  >
-                    <span className="text-red-400 label-text-alt">
-                      {/* @ts-ignore */}
-                      {errors.name.type === "maxLength" && "Max 32 characters!"}
-                      {/* @ts-ignore */}
-                      {errors.name.type === "required" && "Field is required!"}
-                    </span>
-                  </label>
-                )}
-              </div>
-              <div
-                className="pb-6 form-control"
-                style={{ position: "relative" }}
-              >
-                <label className="label" htmlFor="symbol">
-                  <span className="label-text">Symbol</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Symbol"
-                  className={`input input-bordered ${
-                    !!errors.symbol ? "input-error" : ""
-                  }`}
-                  {...register("symbol", { maxLength: 10 })}
-                />
-                {errors.symbol && (
-                  <label
-                    className="py-0 label"
-                    style={{ position: "absolute", bottom: 0 }}
-                  >
-                    <span className="text-red-400 label-text-alt">
-                      Max 10 characters!
-                    </span>
-                  </label>
-                )}
-              </div>
-              <div
-                className="pb-6 form-control"
-                style={{ position: "relative" }}
-              >
-                <label className="label" htmlFor="description">
-                  <span className="label-text">Description</span>
-                </label>
-                <textarea
-                  className="h-24 textarea"
-                  placeholder="Description"
-                  {...register("description")}
-                ></textarea>
-              </div>{" "}
-              <div
-                className="pb-6 form-control"
-                style={{ position: "relative" }}
-              >
-                <label className="label">
-                  <span className="label-text">
-                    External URL (Link to your website, e.g.
-                    https://rugbirdz.com)
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="External URL"
-                  {...register("external_url", { pattern: URL_MATCHER })}
-                  className={`input input-bordered ${
-                    !!errors.external_url ? "input-error" : ""
-                  }`}
-                />
-
-                {errors.external_url && (
-                  <label
-                    className="py-0 label"
-                    style={{ position: "absolute", bottom: 0 }}
-                  >
-                    <span className="text-red-400 label-text-alt">
-                      Not a valid url, don&apos;t forget protocol (https://)
-                    </span>
-                  </label>
-                )}
-              </div>
-              <div
-                className="pb-6 form-control"
-                style={{ position: "relative" }}
-              >
-                <label htmlFor="category" className="label">
-                  <span className="label-text">Category</span>
-                </label>
-                <Controller
-                  name="properties.category"
-                  control={control}
-                  render={({ field: { onChange, onBlur, value, ref } }) => (
-                    <select
-                      onBlur={onBlur}
-                      onChange={onChange}
-                      className="select"
-                      value={value}
-                      ref={ref}
-                      name="category"
-                    >
-                      <option value="image">Image</option>
-                      <option value="vr">VR</option>
-                      <option value="video">Video</option>
-                      <option value="html">HTML</option>
-                    </select>
-                  )}
-                />
-              </div>
-              <div
-                className="pb-6 form-control"
-                style={{ position: "relative" }}
-              >
-                <label className="label" htmlFor="seller_fee_basis_points">
-                  <span className="label-text">
-                    Resale Fee (0-10 000, e.g. for 5% use 500)
-                  </span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="10000"
-                  placeholder="e.g. 500"
-                  {...register("seller_fee_basis_points", {
-                    min: 0,
-                    max: 10_000,
-                  })}
-                  className={`input input-bordered ${
-                    !!errors.seller_fee_basis_points ? "input-error" : ""
-                  }`}
-                />
-
-                {errors.seller_fee_basis_points && (
-                  <label
-                    className="py-0 label"
-                    style={{ position: "absolute", bottom: 0 }}
-                  >
-                    <span className="text-red-400 label-text-alt">
-                      Must be between 0 and 10 000
-                    </span>
-                  </label>
-                )}
-              </div>
-              <AttributesForm register={register} />
-              {FilesForm}
-              {wallet && (
-                <button
-                  className={`btn ${loading ? "loading" : ""}`}
-                  disabled={loading}
-                  type="submit"
-                >
-                  Next
-                </button>
-              )}
-            </form>
-          )}
-        </div>
-      </div>
-
-      <input
-        type="checkbox"
-        id="my-modal-2"
-        checked={!!mint}
-        className="modal-toggle"
-      />
-
-      <div id="my-modal" className="modal">
-        <div className="modal-box">
-          <p>
-            NFT has been minted.{" "}
-            <a
-              className="link"
-              target="_blank"
-              rel="noopener noreferrer"
-              href={`https://solscan.io/token/${mint}`}
-            >
-              View on SolScan
-            </a>
-          </p>
-          <div className="modal-action">
-            <a onClick={() => setMint(undefined)} className="btn">
-              Close
-            </a>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  ) : (
-    <>
-      <div className="mx-auto max-w-xs bg-gray-700 card">
-        <div className="card-body">
-          <h2 className="text-center">To begin please</h2>
-          <br />
-          <WalletMultiButton />
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className="mx-auto max-w-xs bg-gray-700 card">
+            <div className="text-center card-body">
+              <h2 className="">To begin please</h2>
+              <br />
+              <div className="flex flex-row justify-center items-center">
+                <WalletMultiButton />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      ;
     </>
   );
 }
-
 
 export default MintNftPage;

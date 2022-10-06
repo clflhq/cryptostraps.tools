@@ -119,6 +119,7 @@ function ShdwDrivePage() {
   const wallet = useWallet();
   const { solBalance, shdwBalance } = useBalance();
   const [showingForm, setShowingForm] = useState(false);
+  const { publicKey } = wallet;
 
   useEffect(() => {
     (async () => {
@@ -350,13 +351,15 @@ function ShdwDrivePage() {
     [state.isResizing]
   );
 
+ 
+
   return (
     <>
       <Head>
         <title>🛠️ Cryptostraps Tools - SHDW Drive</title>
       </Head>
       <div className="mb-3 max-w-full text-center">
-        <h1 className="text-4xl text-white">
+        <h1 className="text-2xl text-white lg:text-4xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={ImageURI.GenesysGo}
@@ -414,7 +417,7 @@ function ShdwDrivePage() {
           </div>
         )}
 
-        {wallet.connected && (
+        {wallet.connected && !state.loading && (
           <>
             <div className="p-6 max-w-full bg-gray-900 card">
               {!state.storageAccounts.length &&
@@ -486,7 +489,7 @@ function ShdwDrivePage() {
                       account,
                       publicKey,
                       current_usage,
-                      reserved_bytes
+                      reserved_bytes,
                     }: {
                       account: StorageAccount;
                       publicKey: PublicKey;
@@ -504,8 +507,10 @@ function ShdwDrivePage() {
                             <div className="w-full">
                               <span
                                 className={`${
-                                  !!account.deleteRequestEpoch && "text-red-500"
-                                }`}
+                                  !!account.deleteRequestEpoch
+                                    ? "text-red-500"
+                                    : ""
+                                } flex flex-row`}
                               >
                                 {" "}
                                 <strong>{account.identifier}</strong>
@@ -518,7 +523,6 @@ function ShdwDrivePage() {
                                   {account.deleteRequestEpoch}!
                                 </span>
                               )}
-                              <br />
                               <span className="my-2">
                                 Created:{" "}
                                 {new Date(
@@ -535,7 +539,7 @@ function ShdwDrivePage() {
                                 {pubKeyString}
                               </a>
                               <br />
-                              <div className="flex w-full">
+                              <div className="flex flex-wrap w-full">
                                 <a
                                   target="_blank"
                                   href={`/shadow-drive/files?storageAccount=${pubKeyString}`}
@@ -593,7 +597,7 @@ function ShdwDrivePage() {
                                       ""
                                     ) : (
                                       <>
-                                        <TrashIcon width={16} /> delet
+                                        <TrashIcon width={16} /> delete
                                       </>
                                     )}
                                   </button>
@@ -619,13 +623,11 @@ function ShdwDrivePage() {
                               <div className="badge badge-ghost">
                                 Free:{" "}
                                 {sizeMB(
-                                  +(reserved_bytes - current_usage)
-                                    ?.toFixed(2)
+                                  +(reserved_bytes - current_usage)?.toFixed(2)
                                 ).toFixed(2)}{" "}
                                 MB /
                                 {sizeMB(
-                                  +(reserved_bytes as any)
-                                    ?.toFixed(2)
+                                  +(reserved_bytes as any)?.toFixed(2)
                                 ).toFixed(2)}{" "}
                                 MB
                               </div>
@@ -712,7 +714,7 @@ function ShdwDrivePage() {
                         )}
                         <progress
                           className="progress progress-primary"
-                          value={1 - current_usage/ reserved_bytes}
+                          value={1 - current_usage / reserved_bytes}
                         ></progress>
 
                         {i !== state.storageAccounts.length - 1 && (

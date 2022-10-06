@@ -1,11 +1,33 @@
+import { getPlatformFeeAccounts } from "@jup-ag/core";
+import { JupiterProvider } from "@jup-ag/react-hook";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import Head from "next/head";
+import { useState, useEffect } from "react";
 import JupiterForm from "../components/jupiter-swap";
 import { useBalance } from "../contexts/BalanceProvider";
 import { ImageURI } from "../util/image-uri";
 
 function ShdwSwapPage() {
   const { shdwBalance, solBalance } = useBalance();
-
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
+  const [platformFeeAndAccounts, setPlatformFeeAndAccounts] =
+    useState(undefined);
+  useEffect(() => {
+    (async () => {
+      if (process.env.NEXT_PUBLIC_JUPITER_FEE_DESTINATION) {
+        const feeAccs = await getPlatformFeeAccounts(
+          connection,
+          new PublicKey(process.env.NEXT_PUBLIC_JUPITER_FEE_DESTINATION)
+        );
+        setPlatformFeeAndAccounts({
+          feeBps: +(process.env.NEXT_PUBLIC_JUPITER_FEE_AMOUNT || 0),
+          feeAccounts: feeAccs,
+        });
+      }
+    })();
+  }, [connection]);
   return (
     <>
       <Head>
@@ -24,7 +46,7 @@ function ShdwSwapPage() {
               display: "inline",
             }}
           />
-        SHDW Swap
+          SHDW Swap
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={ImageURI.GenesysGo}
@@ -49,6 +71,5 @@ function ShdwSwapPage() {
     </>
   );
 }
-
 
 export default ShdwSwapPage;

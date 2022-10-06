@@ -9,7 +9,11 @@ import React, {
 import { TokenInfo } from "@solana/spl-token-registry";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
-import { TOKEN_LIST_URL, useJupiter } from "@jup-ag/react-hook";
+import {
+  JupiterProvider,
+  TOKEN_LIST_URL,
+  useJupiter,
+} from "@jup-ag/react-hook";
 
 const preferred = [
   "So11111111111111111111111111111111111111112",
@@ -22,8 +26,9 @@ import { toast } from "react-toastify";
 import { useBalance } from "../contexts/BalanceProvider";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import useOnClickOutside from "../hooks/use-click-outside";
-import { Jupiter, RouteInfo } from "@jup-ag/core";
+import { getPlatformFeeAccounts, Jupiter, RouteInfo } from "@jup-ag/core";
 import { toPublicKey } from "../util/to-publickey";
+import { PublicKey } from "@solana/web3.js";
 
 const defaultProps = {
   styles: {
@@ -152,12 +157,6 @@ const JupiterForm: FunctionComponent<IJupiterFormProps> = ({}) => {
       setFocussed(false);
     }
   });
-
-  useEffect(() => {
-    console.log(routes && routes[0])
-  }, [routes])
-
-  // const bestRouteTemp = useMemo(() => {})
 
   const tokenListTempl = useMemo(
     () =>
@@ -368,7 +367,7 @@ const JupiterForm: FunctionComponent<IJupiterFormProps> = ({}) => {
                     ) {
                       const swapResult = await exchange({
                         routeInfo: routes[0],
-                        wallet
+                        wallet,
                       });
                       console.log({ swapResult });
 
@@ -406,4 +405,36 @@ const JupiterForm: FunctionComponent<IJupiterFormProps> = ({}) => {
 
 JupiterForm.defaultProps = defaultProps;
 
-export default JupiterForm;
+const Wrapper = () => {
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
+  const [platformFeeAndAccounts, setPlatformFeeAndAccounts] =
+    useState(undefined);
+  useEffect(() => {
+    (async () => {
+      if (process.env.NEXT_PUBLIC_JUPITER_FEE_DESTINATION) {
+        const feeAccs = await getPlatformFeeAccounts(
+          connection,
+          new PublicKey(process.env.NEXT_PUBLIC_JUPITER_FEE_DESTINATION)
+        );
+        setPlatformFeeAndAccounts({
+          feeBps: +(process.env.NEXT_PUBLIC_JUPITER_FEE_AMOUNT || 0),
+          feeAccounts: feeAccs,
+        });
+      }
+    })();
+  }, [connection]);
+
+  return (
+    <JupiterProvider
+      connection={connection}
+      cluster="mainnet-beta"
+      userPublicKey={publicKey}
+      platformFeeAndAccounts={platformFeeAndAccounts}
+    >
+      <JupiterForm />
+    </JupiterProvider>
+  );
+};
+
+export default Wrapper;

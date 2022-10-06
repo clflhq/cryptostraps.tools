@@ -190,7 +190,7 @@ export default function Snedmaster() {
                       {pubkeyString}
                     </span>
                   </CopyToClipboard>
-                  <p>Balance:{solBalance}</p>
+                  <p>Balance: {solBalance}</p>
                 </div>
               ) : (
                 <>
