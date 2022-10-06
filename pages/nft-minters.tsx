@@ -80,8 +80,9 @@ export default function GetHolders() {
                 (txContent.meta.postBalances[treasuryWalletIndex] - txContent.meta.preBalances[treasuryWalletIndex]) /
                 LAMPORTS_PER_SOL;
               mintInfo.push({ mint: addy, owner, mintTxid, price, unixTime: txContent.blockTime });
+            } else {
+              throw new Error("firstSig not found");
             }
-            return;
           } catch (e) {
             console.error(e?.message || e);
             errors.push({ address: addy, error: e?.message || e });
