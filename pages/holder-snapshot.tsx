@@ -11,6 +11,7 @@ import { download } from "../util/download";
 import { toast } from "react-toastify";
 import DownloadHistory from "../components/download-history";
 import { useRouter } from "next/router";
+import { parse } from "json2csv";
 
 export default function HolderSnapshot() {
   const {
@@ -25,9 +26,7 @@ export default function HolderSnapshot() {
   const [loading, setLoading] = useState(false);
   const { setModalState } = useModal();
   const { connection } = useConnection();
-  const [localStorageItems, setLocalStorageItems] = useState<
-    { name: string; timestamp: number; items: any[] }[]
-  >([]);
+  const [localStorageItems, setLocalStorageItems] = useState<{ name: string; timestamp: number; items: any[] }[]>([]);
   const {
     query: { jobName },
   } = useRouter();
@@ -53,18 +52,21 @@ export default function HolderSnapshot() {
         setLen(parsed.length);
         setLoading(true);
 
-        const owners = await getOwners(parsed, connection, setCounter).catch(
-          () => {
-            setModalState({
-              open: true,
-              message: "An error occured!",
-            });
-            setLoading(false);
-          }
-        );
+        const owners = await getOwners(parsed, connection, setCounter).catch(() => {
+          setModalState({ open: true, message: "An error occured!" });
+          setLoading(false);
+        });
 
-        const filename = "gib-holders.json";
-        download(filename, jsonFormat(owners, { size: 1, type: "tab" }));
+        const filename = `Holders-${Date.now()}`;
+        download(`${filename}.json`, jsonFormat(owners, { size: 1, type: "tab" }));
+        download(
+          `${filename}-with-amount.csv`,
+          parse(Object.keys(owners as any).map((key) => ({ owner: key, amount: owners[key].amount })))
+        );
+        download(
+          `${filename}-per-mint.csv`,
+          parse(Object.keys(owners as any).flatMap((key) => owners[key].mints.map((mint) => ({ mint, owner: key }))))
+        );
         setLoading(false);
         setModalState({
           message: `Successfully downloaded ${filename}`,
@@ -90,17 +92,14 @@ export default function HolderSnapshot() {
         <hr className="my-4 opacity-10" />
       </div>
       <p className="px-2 text-center">
-        This tool gives you a snapshot of holders from Solana Mint IDs. It will
-        return an object with holders, mints and amounts.
+        This tool gives you a snapshot of holders from Solana Mint IDs. It will return an object with holders, mints and
+        amounts.
         <br />
         <strong>Designed to work with NFTs only</strong>
       </p>
       <hr className="my-4 opacity-10" />
       <div className="max-w-full bg-gray-900 card">
-        <form
-          onSubmit={handleSubmit(fetchHolders)}
-          className={`flex flex-col w-full`}
-        >
+        <form onSubmit={handleSubmit(fetchHolders)} className={`flex flex-col w-full`}>
           <div className="card-body">
             <label className="justify-center mb-4 label">
               Please enter SOL mint IDs as JSON array to get their holders.
@@ -114,11 +113,7 @@ export default function HolderSnapshot() {
               rows={4}
               className={`w-full shadow-lg textarea`}
             />
-            {!!errors?.mints?.message && (
-              <label className="label text-error">
-                {errors?.mints?.message}
-              </label>
-            )}
+            {!!errors?.mints?.message && <label className="label text-error">{errors?.mints?.message}</label>}
             <div className="flex flex-col gap-3 justify-center items-center mt-6 text-center">
               {loading && (
                 <div className="w-60">
@@ -134,8 +129,7 @@ export default function HolderSnapshot() {
                 <button
                   type="submit"
                   disabled={!!errors?.mints}
-                  className={`btn btn-primary rounded-box shadow-lg ${
-                    loading ? "loading" : ""}`}
+                  className={`btn btn-primary rounded-box shadow-lg ${loading ? "loading" : ""}`}
                 >
                   Get Holders
                 </button>
