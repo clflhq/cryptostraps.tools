@@ -83,6 +83,7 @@ export default function GetHolders() {
             } else {
               throw new Error("firstSig not found");
             }
+            return;
           } catch (e) {
             console.error(e?.message || e);
             errors.push({ address: addy, error: e?.message || e });
